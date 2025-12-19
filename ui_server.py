@@ -1,7 +1,4 @@
-"""
-Web UI Server for AI Traffic Light Control System
-Provides WebSocket API for real-time communication with the frontend
-"""
+
 import asyncio
 import json
 import sys
