@@ -110,15 +110,15 @@ class TrafficLightEnv(gym.Env):
         self._start_sumo()
         
         # Reset state variables
-        self.current_phase = 0
+        self.current_phase = 0  # Start with North-South green
         self.time_since_last_phase_change = 0
         self.step_count = 0
         self.total_waiting_time = 0
         self.is_yellow = False
         self.yellow_timer = 0
         
-        # Set initial traffic light phase
-        traci.trafficlight.setPhase(self.junction_id, self.current_phase)
+        # Set initial traffic light phase (North-South green)
+        traci.trafficlight.setPhase(self.junction_id, 0)
         
         # Get initial observation
         observation = self._get_observation()
@@ -133,18 +133,25 @@ class TrafficLightEnv(gym.Env):
             self.yellow_timer += 1
             if self.yellow_timer >= self.yellow_time:
                 # End yellow phase, switch to new phase
-                self.current_phase = action
-                traci.trafficlight.setPhase(self.junction_id, self.current_phase)
+                if action == 0:  # North-South green
+                    self.current_phase = 0
+                    traci.trafficlight.setPhase(self.junction_id, 0)
+                else:  # East-West green
+                    self.current_phase = 2
+                    traci.trafficlight.setPhase(self.junction_id, 2)
                 self.is_yellow = False
                 self.yellow_timer = 0
                 self.time_since_last_phase_change = 0
         else:
             # Check if we need to change phase
-            if (action != self.current_phase and 
+            current_action = 0 if self.current_phase in [0, 1] else 1
+            if (action != current_action and 
                 self.time_since_last_phase_change >= self.min_green_time):
                 # Start yellow phase
-                yellow_phase = "yyyy"
-                traci.trafficlight.setRedYellowGreenState(self.junction_id, yellow_phase)
+                if self.current_phase == 0:  # From North-South to East-West
+                    traci.trafficlight.setPhase(self.junction_id, 1)
+                else:  # From East-West to North-South
+                    traci.trafficlight.setPhase(self.junction_id, 3)
                 self.is_yellow = True
                 self.yellow_timer = 0
             

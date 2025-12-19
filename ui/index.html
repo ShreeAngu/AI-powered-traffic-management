@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrafficAI Manager</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-traffic-light"></i>
+                <span>TrafficAI</span>
+            </div>
+            <div class="version">Management System</div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-label">MAIN</div>
+            <ul class="nav-menu">
+                <li class="nav-item active">
+                    <a href="#dashboard" class="nav-link" data-view="dashboard">
+                        <i class="fas fa-th-large"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#simulation" class="nav-link" data-view="simulation">
+                        <i class="fas fa-play-circle"></i>
+                        <span>Simulation</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#analytics" class="nav-link" data-view="analytics">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Analytics</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#models" class="nav-link" data-view="models">
+                        <i class="fas fa-brain"></i>
+                        <span>AI Models</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-label">MODEL VERSIONS</div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="#" class="nav-link model-item">
+                        <i class="fas fa-check-circle model-status training"></i>
+                        <div class="model-info">
+                            <span class="model-name">Model v1.2-beta</span>
+                            <span class="model-desc">Training Complete</span>
+                        </div>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link model-item">
+                        <i class="fas fa-check-circle model-status live"></i>
+                        <div class="model-info">
+                            <span class="model-name">Model v1.0 (Prod)</span>
+                            <span class="model-desc">Live</span>
+                        </div>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link model-item">
+                        <i class="fas fa-archive model-status archived"></i>
+                        <div class="model-info">
+                            <span class="model-name">Model v0.9 (Legacy)</span>
+                            <span class="model-desc">Archived</span>
+                        </div>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-label">SYSTEM</div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="#settings" class="nav-link" data-view="settings">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="user-profile">
+                <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" alt="User" class="user-avatar">
+                <div class="user-info">
+                    <div class="user-name">Traffic Engineer</div>
+                    <div class="user-role">System Operator</div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Top Header -->
+        <header class="top-header">
+            <div class="header-left">
+                <h1 class="page-title" id="pageTitle">Overview</h1>
+                <div class="system-status">
+                    <span class="status-dot online"></span>
+                    <span>System Online • Data stream active</span>
+                    <span class="simulation-time" style="margin-left: 20px; color: var(--text-muted);">0:00</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="btn btn-secondary">
+                    <i class="fas fa-download"></i>
+                    Report
+                </button>
+                <button class="btn btn-primary">
+                    <i class="fas fa-plus"></i>
+                    New Test Case
+                </button>
+                <div class="user-menu">
+                    <i class="fas fa-bell notification-icon"></i>
+                    <i class="fas fa-cog settings-icon"></i>
+                </div>
+            </div>
+        </header>
+
+        <!-- Views Container -->
+        <div class="views-container">
+            
+            <!-- DASHBOARD VIEW -->
+            <div id="dashboard-view" class="view active">
+                <div class="dashboard-content">
+                    <!-- Key Metrics -->
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-icon flow-rate">
+                                <i class="fas fa-tachometer-alt"></i>
+                            </div>
+                            <div class="metric-content">
+                                <div class="metric-value">1,240</div>
+                                <div class="metric-label">Flow Rate</div>
+                                <div class="metric-unit">cars/hr</div>
+                                <div class="metric-change positive">
+                                    <i class="fas fa-arrow-up"></i>
+                                    12%
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-icon congestion">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="metric-content">
+                                <div class="metric-value">Level 3</div>
+                                <div class="metric-label">Congestion Index</div>
+                                <div class="metric-unit">/5</div>
+                                <div class="metric-change negative">
+                                    <i class="fas fa-arrow-down"></i>
+                                    6%
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-icon incidents">
+                                <i class="fas fa-exclamation-circle"></i>
+                            </div>
+                            <div class="metric-content">
+                                <div class="metric-value">12</div>
+                                <div class="metric-label">Active Incidents</div>
+                                <div class="metric-unit">alerts</div>
+                                <div class="metric-change critical">
+                                    <i class="fas fa-arrow-up"></i>
+                                    +2
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-icon efficiency">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div class="metric-content">
+                                <div class="metric-value">94</div>
+                                <div class="metric-label">AI Efficiency</div>
+                                <div class="metric-unit">/100</div>
+                                <div class="metric-change positive">
+                                    <i class="fas fa-arrow-up"></i>
+                                    1.5%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main Dashboard Grid -->
+                    <div class="dashboard-grid">
+                        <!-- Live Traffic Map -->
+                        <div class="dashboard-card map-card">
+                            <div class="card-header">
+                                <h3>Live Traffic Map</h3>
+                                <p>Real-time intersection monitoring - Downtown Sector</p>
+                                <button class="expand-btn">
+                                    <i class="fas fa-expand"></i>
+                                </button>
+                            </div>
+                            <div class="map-container">
+                                <div class="intersection-map">
+                                    <!-- Traffic Intersection Visualization -->
+                                    <div class="intersection">
+                                        <!-- Roads -->
+                                        <div class="road horizontal"></div>
+                                        <div class="road vertical"></div>
+                                        
+                                        <!-- Traffic Lights -->
+                                        <div class="traffic-light north" id="lightNorth">
+                                            <div class="light red"></div>
+                                            <div class="light yellow"></div>
+                                            <div class="light green active"></div>
+                                        </div>
+                                        <div class="traffic-light south" id="lightSouth">
+                                            <div class="light red"></div>
+                                            <div class="light yellow"></div>
+                                            <div class="light green active"></div>
+                                        </div>
+                                        <div class="traffic-light east" id="lightEast">
+                                            <div class="light red active"></div>
+                                            <div class="light yellow"></div>
+                                            <div class="light green"></div>
+                                        </div>
+                                        <div class="traffic-light west" id="lightWest">
+                                            <div class="light red active"></div>
+                                            <div class="light yellow"></div>
+                                            <div class="light green"></div>
+                                        </div>
+
+                                        <!-- Vehicle Queues -->
+                                        <div class="queue north-queue">
+                                            <div class="queue-indicator">
+                                                <span class="queue-count">8</span>
+                                            </div>
+                                        </div>
+                                        <div class="queue south-queue">
+                                            <div class="queue-indicator">
+                                                <span class="queue-count">12</span>
+                                            </div>
+                                        </div>
+                                        <div class="queue east-queue">
+                                            <div class="queue-indicator">
+                                                <span class="queue-count">6</span>
+                                            </div>
+                                        </div>
+                                        <div class="queue west-queue">
+                                            <div class="queue-indicator">
+                                                <span class="queue-count">15</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="map-legend">
+                                    <div class="legend-item">
+                                        <span class="legend-dot optimal"></span>
+                                        <span>Optimal Flow</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <span class="legend-dot congestion"></span>
+                                        <span>Congestion</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Model Status -->
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <h3>Model Status</h3>
+                            </div>
+                            <div class="model-status-content">
+                                <div class="training-progress">
+                                    <div class="progress-circle">
+                                        <svg class="progress-ring" width="80" height="80">
+                                            <circle class="progress-ring-circle" stroke="#3b82f6" stroke-width="4" fill="transparent" r="36" cx="40" cy="40" style="stroke-dasharray: 226.19; stroke-dashoffset: 49.76;"/>
+                                        </svg>
+                                        <div class="progress-text">78%</div>
+                                    </div>
+                                    <div class="training-info">
+                                        <h4>Training in Progress</h4>
+                                        <p>Epoch 450/1000</p>
+                                        <p class="eta">ETA: 1h 30m</p>
+                                    </div>
+                                </div>
+                                <div class="training-controls">
+                                    <button class="btn btn-secondary">
+                                        <i class="fas fa-pause"></i>
+                                        Pause
+                                    </button>
+                                    <button class="btn btn-outline">
+                                        <i class="fas fa-eye"></i>
+                                        View
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="quick-actions">
+                                <h4>Quick Actions</h4>
+                                <button class="action-btn">
+                                    <i class="fas fa-play"></i>
+                                    <span>Run Evaluation</span>
+                                    <small>Benchmark current model performance</small>
+                                </button>
+                                <button class="action-btn">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <span>Deploy to Staging</span>
+                                    <small>Push v4.2.1 to staging env</small>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Performance Metrics -->
+                        <div class="dashboard-card performance-card">
+                            <div class="card-header">
+                                <h3>Performance Metrics</h3>
+                                <p>Wait Times: AI vs Fixed Control</p>
+                                <div class="time-selector">
+                                    <button class="time-btn active">1H</button>
+                                    <button class="time-btn">24H</button>
+                                    <button class="time-btn">7D</button>
+                                </div>
+                            </div>
+                            <div class="performance-summary">
+                                <div class="improvement-metric">
+                                    <span class="improvement-value">-18%</span>
+                                    <span class="improvement-label">Improvement in wait times</span>
+                                </div>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="performanceChart" width="400" height="200"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Recent Alerts -->
+                        <div class="dashboard-card alerts-card">
+                            <div class="card-header">
+                                <h3>Recent Alerts</h3>
+                                <button class="view-all-btn">View All</button>
+                            </div>
+                            <div class="alerts-list">
+                                <div class="alert-item critical">
+                                    <div class="alert-icon">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                    </div>
+                                    <div class="alert-content">
+                                        <div class="alert-title">Accident detected</div>
+                                        <div class="alert-desc">Intersection 4B • 2m ago</div>
+                                    </div>
+                                </div>
+                                <div class="alert-item warning">
+                                    <div class="alert-icon">
+                                        <i class="fas fa-exclamation-circle"></i>
+                                    </div>
+                                    <div class="alert-content">
+                                        <div class="alert-title">Congestion spike</div>
+                                        <div class="alert-desc">Main Ave • 10m ago</div>
+                                    </div>
+                                </div>
+                                <div class="alert-item info">
+                                    <div class="alert-icon">
+                                        <i class="fas fa-info-circle"></i>
+                                    </div>
+                                    <div class="alert-content">
+                                        <div class="alert-title">Sensor Calibration</div>
+                                        <div class="alert-desc">Unit 52-A • 42m ago</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Control Panel -->
+                    <div class="control-panel">
+                        <div class="control-header">
+                            <h3>Mission Control: Sector 7</h3>
+                            <div class="control-actions">
+                                <button class="btn btn-primary">Save Scenario</button>
+                            </div>
+                        </div>
+                        
+                        <div class="control-modes">
+                            <button class="mode-btn active" data-mode="ai">
+                                <i class="fas fa-robot"></i>
+                                AI Control
+                            </button>
+                            <button class="mode-btn" data-mode="manual">
+                                <i class="fas fa-hand-paper"></i>
+                                Manual
+                            </button>
+                            <button class="mode-btn" data-mode="fixed">
+                                <i class="fas fa-clock"></i>
+                                Fixed Time
+                            </button>
+                        </div>
+
+                        <div class="simulation-controls">
+                            <button class="sim-btn" id="startSim" title="Start Simulation">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <button class="sim-btn" id="pauseSim" title="Pause Simulation">
+                                <i class="fas fa-pause"></i>
+                            </button>
+                            <button class="sim-btn" id="stopSim" title="Stop Simulation">
+                                <i class="fas fa-stop"></i>
+                            </button>
+                            <button class="sim-btn" id="resetSim" title="Reset Simulation">
+                                <i class="fas fa-redo"></i>
+                            </button>
+                        </div>
+
+                        <div class="manual-controls" id="manualControls" style="display: none;">
+                            <h4>Manual Phase Control</h4>
+                            <div class="phase-buttons">
+                                <button class="phase-control-btn" data-phase="0">
+                                    <i class="fas fa-arrow-up"></i>
+                                    <i class="fas fa-arrow-down"></i>
+                                    <span>North-South</span>
+                                </button>
+                                <button class="phase-control-btn" data-phase="1">
+                                    <i class="fas fa-arrow-left"></i>
+                                    <i class="fas fa-arrow-right"></i>
+                                    <span>East-West</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SIMULATION VIEW -->
+            <div id="simulation-view" class="view">
+                <div class="view-header">
+                    <h2>Simulation Configuration</h2>
+                    <p>Configure traffic flow parameters and scenarios</p>
+                </div>
+                <div class="view-content">
+                    <div class="config-grid">
+                        <div class="config-card">
+                            <h3>Scenario Settings</h3>
+                            <div class="form-group">
+                                <label>Traffic Density (veh/hr)</label>
+                                <div class="range-container">
+                                    <input type="range" min="500" max="3000" value="1200" class="slider" id="densitySlider">
+                                    <span class="slider-value">1200</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Spawn Rate Variance</label>
+                                <div class="range-container">
+                                    <input type="range" min="0" max="1" step="0.1" value="0.2" class="slider">
+                                    <span class="slider-value">0.2</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="config-card">
+                            <h3>Environment</h3>
+                            <div class="toggle-group">
+                                <label class="toggle-label">
+                                    <span>Weather Effects</span>
+                                    <input type="checkbox" checked>
+                                    <span class="toggle-switch"></span>
+                                </label>
+                                <label class="toggle-label">
+                                    <span>Pedestrians</span>
+                                    <input type="checkbox">
+                                    <span class="toggle-switch"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ANALYTICS VIEW -->
+            <div id="analytics-view" class="view">
+                <div class="view-header">
+                    <h2>System Analytics</h2>
+                    <p>Detailed performance metrics and historical data</p>
+                </div>
+                <div class="view-content">
+                    <div class="analytics-grid">
+                        <div class="chart-card full-width">
+                            <h3>Traffic Flow History</h3>
+                            <div class="chart-placeholder">
+                                <canvas id="flowHistoryChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <h3>Vehicle Types</h3>
+                            <div class="chart-placeholder">
+                                <canvas id="vehicleTypeChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <h3>Wait Time Distribution</h3>
+                            <div class="chart-placeholder">
+                                <canvas id="waitTimeChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODELS VIEW -->
+            <div id="models-view" class="view">
+                <div class="view-header">
+                    <h2>AI Models</h2>
+                    <p>Manage and train reinforcement learning agents</p>
+                </div>
+                <div class="view-content">
+                    <div class="models-grid">
+                        <div class="model-card active">
+                            <div class="model-header">
+                                <div class="model-icon ppo">PPO</div>
+                                <div class="model-status-badge active">Active</div>
+                            </div>
+                            <h3>Proximal Policy Optimization</h3>
+                            <p>Standard RL algorithm for continuous control</p>
+                            <div class="model-stats">
+                                <div class="stat">
+                                    <span class="label">Reward</span>
+                                    <span class="value">94.5</span>
+                                </div>
+                                <div class="stat">
+                                    <span class="label">Steps</span>
+                                    <span class="value">1.2M</span>
+                                </div>
+                            </div>
+                            <div class="model-actions">
+                                <button class="btn btn-outline btn-sm" onclick="trafficAI.loadModel('ppo')">Load</button>
+                                <button class="btn btn-primary btn-sm" onclick="trafficAI.trainModel('ppo')">Train</button>
+                            </div>
+                        </div>
+
+                        <div class="model-card">
+                            <div class="model-header">
+                                <div class="model-icon dqn">DQN</div>
+                                <div class="model-status-badge">Ready</div>
+                            </div>
+                            <h3>Deep Q-Network</h3>
+                            <p>Value-based reinforcement learning</p>
+                            <div class="model-stats">
+                                <div class="stat">
+                                    <span class="label">Reward</span>
+                                    <span class="value">88.2</span>
+                                </div>
+                                <div class="stat">
+                                    <span class="label">Steps</span>
+                                    <span class="value">850K</span>
+                                </div>
+                            </div>
+                            <div class="model-actions">
+                                <button class="btn btn-outline btn-sm" onclick="trafficAI.loadModel('dqn')">Load</button>
+                                <button class="btn btn-primary btn-sm" onclick="trafficAI.trainModel('dqn')">Train</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SETTINGS VIEW -->
+            <div id="settings-view" class="view">
+                <div class="view-header">
+                    <h2>System Settings</h2>
+                    <p>Configure application preferences</p>
+                </div>
+                <div class="view-content">
+                    <div class="settings-section">
+                        <h3>General</h3>
+                        <div class="form-group">
+                            <label>System Name</label>
+                            <input type="text" value="TrafficAI Manager" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label>Theme</label>
+                            <select class="form-select">
+                                <option>Dark (Default)</option>
+                                <option>Light</option>
+                                <option>System</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="settings-section">
+                        <h3>Connection</h3>
+                        <div class="form-group">
+                            <label>WebSocket URL</label>
+                            <input type="text" value="ws://localhost:8765" class="form-input">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
