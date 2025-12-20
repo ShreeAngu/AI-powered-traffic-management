@@ -26,7 +26,8 @@ class TrafficLightEnv(gym.Env):
                  use_gui: bool = False,
                  max_steps: int = 3600,
                  yellow_time: int = 4,
-                 min_green_time: int = 10):
+                 min_green_time: int = 10,
+                 sumo_port: int = 8813):
         """
         Initialize the traffic light environment.
         
@@ -36,6 +37,7 @@ class TrafficLightEnv(gym.Env):
             max_steps: Maximum simulation steps
             yellow_time: Duration of yellow phase
             min_green_time: Minimum green phase duration
+            sumo_port: SUMO TraCI port (different ports for parallel instances)
         """
         super().__init__()
         
@@ -45,9 +47,14 @@ class TrafficLightEnv(gym.Env):
         self.max_steps = max_steps
         self.yellow_time = yellow_time
         self.min_green_time = min_green_time
+        self.sumo_port = sumo_port
         
         # Traffic light junction ID (main intersection)
         self.junction_id = "J0"
+        
+        # Connection label for this instance
+        self.label = f"sim_{self.sumo_port}"
+        self.conn = None
         
         # Incoming lanes to monitor (4 directions)
         self.incoming_lanes = ["W0_0", "W0_1", "N0_0", "N0_1", 
@@ -95,16 +102,20 @@ class TrafficLightEnv(gym.Env):
             "--random"
         ]
         
-        # Start TraCI connection
-        traci.start(sumo_cmd)
+        # Start TraCI connection with specific port and label
+        # The port parameter in traci.start() will automatically set --remote-port
+        traci.start(sumo_cmd, port=self.sumo_port, label=self.label)
+        self.conn = traci.getConnection(self.label)
         
     def reset(self, seed=None, options=None):
         """Reset the environment"""
         super().reset(seed=seed)
         
         # Close existing connection if any
-        if traci.isLoaded():
-            traci.close()
+        try:
+            traci.getConnection(self.label).close()
+        except:
+            pass
             
         # Start new simulation
         self._start_sumo()
@@ -118,7 +129,7 @@ class TrafficLightEnv(gym.Env):
         self.yellow_timer = 0
         
         # Set initial traffic light phase (North-South green)
-        traci.trafficlight.setPhase(self.junction_id, 0)
+        self.conn.trafficlight.setPhase(self.junction_id, 0)
         
         # Get initial observation
         observation = self._get_observation()
@@ -133,12 +144,13 @@ class TrafficLightEnv(gym.Env):
             self.yellow_timer += 1
             if self.yellow_timer >= self.yellow_time:
                 # End yellow phase, switch to new phase
-                if action == 0:  # North-South green
-                    self.current_phase = 0
-                    traci.trafficlight.setPhase(self.junction_id, 0)
-                else:  # East-West green
-                    self.current_phase = 2
-                    traci.trafficlight.setPhase(self.junction_id, 2)
+                if self.current_phase == 1:  # Was Yellow after NS Green
+                    self.current_phase = 2   # Switch to EW Green
+                    self.conn.trafficlight.setPhase(self.junction_id, 2)
+                elif self.current_phase == 3: # Was Yellow after EW Green
+                    self.current_phase = 0    # Switch to NS Green
+                    self.conn.trafficlight.setPhase(self.junction_id, 0)
+                
                 self.is_yellow = False
                 self.yellow_timer = 0
                 self.time_since_last_phase_change = 0
@@ -149,14 +161,14 @@ class TrafficLightEnv(gym.Env):
                 self.time_since_last_phase_change >= self.min_green_time):
                 # Start yellow phase
                 if self.current_phase == 0:  # From North-South to East-West
-                    traci.trafficlight.setPhase(self.junction_id, 1)
+                    self.conn.trafficlight.setPhase(self.junction_id, 1)
                 else:  # From East-West to North-South
-                    traci.trafficlight.setPhase(self.junction_id, 3)
+                    self.conn.trafficlight.setPhase(self.junction_id, 3)
                 self.is_yellow = True
                 self.yellow_timer = 0
             
         # Advance simulation
-        traci.simulationStep()
+        self.conn.simulationStep()
         self.step_count += 1
         self.time_since_last_phase_change += 1
         
@@ -166,7 +178,7 @@ class TrafficLightEnv(gym.Env):
         
         # Check if episode is done
         terminated = (self.step_count >= self.max_steps or 
-                     traci.simulation.getMinExpectedNumber() <= 0)
+                     self.conn.simulation.getMinExpectedNumber() <= 0)
         truncated = False
         
         info = self._get_info()
@@ -178,19 +190,20 @@ class TrafficLightEnv(gym.Env):
         Get current observation: halting vehicles per direction
         Returns array of shape (4,) representing [West, North, East, South]
         """
+    
         try:
             # Get halting vehicles for each direction
-            west_halting = (traci.lane.getLastStepHaltingNumber("W0_0") + 
-                           traci.lane.getLastStepHaltingNumber("W0_1"))
+            west_halting = (self.conn.lane.getLastStepHaltingNumber("W0_0") + 
+                           self.conn.lane.getLastStepHaltingNumber("W0_1"))
             
-            north_halting = (traci.lane.getLastStepHaltingNumber("N0_0") + 
-                            traci.lane.getLastStepHaltingNumber("N0_1"))
+            north_halting = (self.conn.lane.getLastStepHaltingNumber("N0_0") + 
+                            self.conn.lane.getLastStepHaltingNumber("N0_1"))
             
-            east_halting = (traci.lane.getLastStepHaltingNumber("E0_0") + 
-                           traci.lane.getLastStepHaltingNumber("E0_1"))
+            east_halting = (self.conn.lane.getLastStepHaltingNumber("E0_0") + 
+                           self.conn.lane.getLastStepHaltingNumber("E0_1"))
             
-            south_halting = (traci.lane.getLastStepHaltingNumber("S0_0") + 
-                            traci.lane.getLastStepHaltingNumber("S0_1"))
+            south_halting = (self.conn.lane.getLastStepHaltingNumber("S0_0") + 
+                            self.conn.lane.getLastStepHaltingNumber("S0_1"))
             
             observation = np.array([west_halting, north_halting, east_halting, south_halting], 
                                  dtype=np.float32)
@@ -208,11 +221,11 @@ class TrafficLightEnv(gym.Env):
         """
         try:
             # Get waiting time for all vehicles
-            vehicle_ids = traci.vehicle.getIDList()
+            vehicle_ids = self.conn.vehicle.getIDList()
             current_waiting_time = 0
             
             for veh_id in vehicle_ids:
-                waiting_time = traci.vehicle.getWaitingTime(veh_id)
+                waiting_time = self.conn.vehicle.getWaitingTime(veh_id)
                 current_waiting_time += waiting_time
             
             # Reward is negative waiting time (minimize congestion)
@@ -232,11 +245,11 @@ class TrafficLightEnv(gym.Env):
     def _get_info(self) -> Dict:
         """Get additional information about the environment state"""
         try:
-            vehicle_count = traci.vehicle.getIDCount()
+            vehicle_count = self.conn.vehicle.getIDCount()
             avg_speed = 0
             if vehicle_count > 0:
-                speeds = [traci.vehicle.getSpeed(veh_id) 
-                         for veh_id in traci.vehicle.getIDList()]
+                speeds = [self.conn.vehicle.getSpeed(veh_id) 
+                         for veh_id in self.conn.vehicle.getIDList()]
                 avg_speed = np.mean(speeds) if speeds else 0
                 
         except traci.exceptions.TraCIException:
@@ -254,8 +267,10 @@ class TrafficLightEnv(gym.Env):
     
     def close(self):
         """Close the environment"""
-        if traci.isLoaded():
-            traci.close()
+        try:
+            self.conn.close()
+        except:
+            pass
     
     def render(self, mode="human"):
         """Render the environment (SUMO GUI handles this)"""

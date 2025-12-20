@@ -22,7 +22,7 @@ def check_dependencies():
 
 
 def start_server():
-    """Start the WebSocket server"""
+    """Start both WebSocket and HTTP servers"""
     print("Starting AI Traffic Light Control System...")
     print("=" * 60)
     
@@ -31,48 +31,67 @@ def start_server():
         print("Failed to install dependencies")
         return False
     
-    # Start server in background
-    server_process = subprocess.Popen([
+    # Start WebSocket server in background
+    print("🔌 Starting WebSocket server...")
+    ws_server_process = subprocess.Popen([
         sys.executable, "ui_server.py"
     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     
-    # Wait a moment for server to start
+    # Wait a moment for WebSocket server to start
     time.sleep(2)
     
-    # Check if server is running
-    if server_process.poll() is None:
-        print("✓ Backend server started successfully")
+    # Check if WebSocket server is running
+    if ws_server_process.poll() is None:
+        print("✓ WebSocket server started successfully")
         
-        # Open web browser
-        ui_path = Path("ui/index.html").absolute()
-        if ui_path.exists():
-            print(f"✓ Opening web interface: {ui_path}")
-            webbrowser.open(f"file://{ui_path}")
+        # Start HTTP server for UI files
+        print("🌐 Starting HTTP server for UI...")
+        http_server_process = subprocess.Popen([
+            sys.executable, "serve_ui.py"
+        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        
+        # Wait a moment for HTTP server to start
+        time.sleep(2)
+        
+        if http_server_process.poll() is None:
+            print("✓ HTTP server started successfully")
+            
+            print("\n" + "=" * 60)
+            print("🚦 AI Traffic Light Control System is running!")
+            print("=" * 60)
+            print("🌐 Web Interface: http://localhost:8080")
+            print("🔌 WebSocket Server: ws://localhost:8765")
+            print("🛑 To stop: Press Ctrl+C")
+            print("=" * 60)
+            
+            try:
+                # Wait for servers to finish
+                while True:
+                    if ws_server_process.poll() is not None:
+                        print("WebSocket server stopped")
+                        break
+                    if http_server_process.poll() is not None:
+                        print("HTTP server stopped")
+                        break
+                    time.sleep(1)
+                    
+            except KeyboardInterrupt:
+                print("\n\nShutting down...")
+                ws_server_process.terminate()
+                http_server_process.terminate()
+                ws_server_process.wait()
+                http_server_process.wait()
+                print("✓ Servers stopped")
+            
+            return True
         else:
-            print("✗ UI files not found")
+            print("✗ Failed to start HTTP server")
+            ws_server_process.terminate()
             return False
         
-        print("\n" + "=" * 60)
-        print("AI Traffic Light Control System is running!")
-        print("=" * 60)
-        print("📊 Web Interface: Open ui/index.html in your browser")
-        print("🔌 WebSocket Server: ws://localhost:8765")
-        print("🛑 To stop: Press Ctrl+C")
-        print("=" * 60)
-        
-        try:
-            # Wait for server to finish
-            server_process.wait()
-        except KeyboardInterrupt:
-            print("\n\nShutting down...")
-            server_process.terminate()
-            server_process.wait()
-            print("✓ Server stopped")
-        
-        return True
     else:
-        print("✗ Failed to start backend server")
-        stdout, stderr = server_process.communicate()
+        print("✗ Failed to start WebSocket server")
+        stdout, stderr = ws_server_process.communicate()
         if stderr:
             print(f"Error: {stderr.decode()}")
         return False

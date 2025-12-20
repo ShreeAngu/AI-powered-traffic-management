@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
+
 <body>
     <!-- Sidebar Navigation -->
     <nav class="sidebar">
@@ -95,7 +97,8 @@
 
         <div class="sidebar-footer">
             <div class="user-profile">
-                <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" alt="User" class="user-avatar">
+                <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face"
+                    alt="User" class="user-avatar">
                 <div class="user-info">
                     <div class="user-name">Traffic Engineer</div>
                     <div class="user-role">System Operator</div>
@@ -117,13 +120,9 @@
                 </div>
             </div>
             <div class="header-right">
-                <button class="btn btn-secondary">
-                    <i class="fas fa-download"></i>
-                    Report
-                </button>
-                <button class="btn btn-primary">
-                    <i class="fas fa-plus"></i>
-                    New Test Case
+                <button class="btn btn-secondary" onclick="trafficAI.runEvaluation()">
+                    <i class="fas fa-play"></i>
+                    Run Evaluation
                 </button>
                 <div class="user-menu">
                     <i class="fas fa-bell notification-icon"></i>
@@ -134,7 +133,7 @@
 
         <!-- Views Container -->
         <div class="views-container">
-            
+
             <!-- DASHBOARD VIEW -->
             <div id="dashboard-view" class="view active">
                 <div class="dashboard-content">
@@ -208,7 +207,7 @@
                             <div class="card-header">
                                 <h3>Live Traffic Map</h3>
                                 <p>Real-time intersection monitoring - Downtown Sector</p>
-                                <button class="expand-btn">
+                                <button class="expand-btn" onclick="trafficAI.toggleFullscreen()">
                                     <i class="fas fa-expand"></i>
                                 </button>
                             </div>
@@ -219,7 +218,7 @@
                                         <!-- Roads -->
                                         <div class="road horizontal"></div>
                                         <div class="road vertical"></div>
-                                        
+
                                         <!-- Traffic Lights -->
                                         <div class="traffic-light north" id="lightNorth">
                                             <div class="light red"></div>
@@ -287,39 +286,31 @@
                                 <div class="training-progress">
                                     <div class="progress-circle">
                                         <svg class="progress-ring" width="80" height="80">
-                                            <circle class="progress-ring-circle" stroke="#3b82f6" stroke-width="4" fill="transparent" r="36" cx="40" cy="40" style="stroke-dasharray: 226.19; stroke-dashoffset: 49.76;"/>
+                                            <circle class="progress-ring-circle" stroke="#3b82f6" stroke-width="4"
+                                                fill="transparent" r="36" cx="40" cy="40"
+                                                style="stroke-dasharray: 226.19; stroke-dashoffset: 226.19;" />
                                         </svg>
-                                        <div class="progress-text">78%</div>
+                                        <div class="progress-text">0%</div>
                                     </div>
                                     <div class="training-info">
-                                        <h4>Training in Progress</h4>
-                                        <p>Epoch 450/1000</p>
-                                        <p class="eta">ETA: 1h 30m</p>
+                                        <h4>Ready to Train</h4>
+                                        <p>No training in progress</p>
+                                        <p class="eta">Click Train in AI Models tab</p>
                                     </div>
-                                </div>
-                                <div class="training-controls">
-                                    <button class="btn btn-secondary">
-                                        <i class="fas fa-pause"></i>
-                                        Pause
-                                    </button>
-                                    <button class="btn btn-outline">
-                                        <i class="fas fa-eye"></i>
-                                        View
-                                    </button>
                                 </div>
                             </div>
 
                             <div class="quick-actions">
                                 <h4>Quick Actions</h4>
-                                <button class="action-btn">
+                                <button class="action-btn" id="btn-run-eval">
                                     <i class="fas fa-play"></i>
                                     <span>Run Evaluation</span>
                                     <small>Benchmark current model performance</small>
                                 </button>
-                                <button class="action-btn">
+                                <button class="action-btn" id="btn-deploy-model">
                                     <i class="fas fa-cloud-upload-alt"></i>
-                                    <span>Deploy to Staging</span>
-                                    <small>Push v4.2.1 to staging env</small>
+                                    <span>Deploy to Production</span>
+                                    <small>Deploy trained model to live system</small>
                                 </button>
                             </div>
                         </div>
@@ -350,92 +341,110 @@
                         <div class="dashboard-card alerts-card">
                             <div class="card-header">
                                 <h3>Recent Alerts</h3>
-                                <button class="view-all-btn">View All</button>
+                                <button class="view-all-btn" onclick="trafficAI.viewAllAlerts()">View All</button>
                             </div>
-                            <div class="alerts-list">
-                                <div class="alert-item critical">
-                                    <div class="alert-icon">
-                                        <i class="fas fa-exclamation-triangle"></i>
-                                    </div>
-                                    <div class="alert-content">
-                                        <div class="alert-title">Accident detected</div>
-                                        <div class="alert-desc">Intersection 4B • 2m ago</div>
-                                    </div>
-                                </div>
-                                <div class="alert-item warning">
-                                    <div class="alert-icon">
-                                        <i class="fas fa-exclamation-circle"></i>
-                                    </div>
-                                    <div class="alert-content">
-                                        <div class="alert-title">Congestion spike</div>
-                                        <div class="alert-desc">Main Ave • 10m ago</div>
-                                    </div>
-                                </div>
-                                <div class="alert-item info">
-                                    <div class="alert-icon">
-                                        <i class="fas fa-info-circle"></i>
-                                    </div>
-                                    <div class="alert-content">
-                                        <div class="alert-title">Sensor Calibration</div>
-                                        <div class="alert-desc">Unit 52-A • 42m ago</div>
-                                    </div>
-                                </div>
+                            <div class="alerts-list" id="alertsList">
+                                <!-- Dynamic alerts will be populated here -->
+                            </div>
+                            
+                            <!-- System Log Container -->
+                            <div class="log-container" id="systemLog" style="display: none;">
+                                <h4 style="margin-bottom: 8px; color: var(--text-secondary); font-size: 12px;">System Log</h4>
+                                <!-- Log entries will be added here -->
+                            </div>
+                            
+                            <div style="margin-top: 12px; text-align: center;">
+                                <button class="btn btn-outline btn-sm" onclick="trafficAI.toggleSystemLog()">
+                                    <i class="fas fa-terminal"></i>
+                                    <span id="logToggleText">Show Log</span>
+                                </button>
                             </div>
                         </div>
                     </div>
 
                     <!-- Control Panel -->
-                    <div class="control-panel">
+                    <div class="control-panel" id="controlPanel">
                         <div class="control-header">
-                            <h3>Mission Control: Sector 7</h3>
+                            <h3>Mission Control</h3>
                             <div class="control-actions">
-                                <button class="btn btn-primary">Save Scenario</button>
+                                <button class="btn btn-secondary btn-sm" onclick="trafficAI.toggleControlPanel()"
+                                    title="Minimize/Maximize">
+                                    <i class="fas fa-minus" id="controlToggleIcon"></i>
+                                </button>
                             </div>
                         </div>
-                        
-                        <div class="control-modes">
-                            <button class="mode-btn active" data-mode="ai">
-                                <i class="fas fa-robot"></i>
-                                AI Control
-                            </button>
-                            <button class="mode-btn" data-mode="manual">
-                                <i class="fas fa-hand-paper"></i>
-                                Manual
-                            </button>
-                            <button class="mode-btn" data-mode="fixed">
-                                <i class="fas fa-clock"></i>
-                                Fixed Time
-                            </button>
-                        </div>
 
-                        <div class="simulation-controls">
-                            <button class="sim-btn" id="startSim" title="Start Simulation">
-                                <i class="fas fa-play"></i>
-                            </button>
-                            <button class="sim-btn" id="pauseSim" title="Pause Simulation">
-                                <i class="fas fa-pause"></i>
-                            </button>
-                            <button class="sim-btn" id="stopSim" title="Stop Simulation">
-                                <i class="fas fa-stop"></i>
-                            </button>
-                            <button class="sim-btn" id="resetSim" title="Reset Simulation">
-                                <i class="fas fa-redo"></i>
-                            </button>
-                        </div>
+                        <div class="control-content" id="controlContent">
+                            <div class="control-modes">
+                                <button class="mode-btn active" data-mode="ai">
+                                    <i class="fas fa-robot"></i>
+                                    AI Control
+                                </button>
+                                <button class="mode-btn" data-mode="manual">
+                                    <i class="fas fa-hand-paper"></i>
+                                    Manual
+                                </button>
+                                <button class="mode-btn" data-mode="fixed">
+                                    <i class="fas fa-clock"></i>
+                                    Fixed Time
+                                </button>
+                            </div>
 
-                        <div class="manual-controls" id="manualControls" style="display: none;">
-                            <h4>Manual Phase Control</h4>
-                            <div class="phase-buttons">
-                                <button class="phase-control-btn" data-phase="0">
-                                    <i class="fas fa-arrow-up"></i>
-                                    <i class="fas fa-arrow-down"></i>
-                                    <span>North-South</span>
+                            <div class="simulation-controls">
+                                <button class="sim-btn" id="startSim" title="Start Simulation">
+                                    <i class="fas fa-play"></i>
                                 </button>
-                                <button class="phase-control-btn" data-phase="1">
-                                    <i class="fas fa-arrow-left"></i>
-                                    <i class="fas fa-arrow-right"></i>
-                                    <span>East-West</span>
+                                <button class="sim-btn" id="pauseSim" title="Pause Simulation">
+                                    <i class="fas fa-pause"></i>
                                 </button>
+                                <button class="sim-btn" id="stopSim" title="Stop Simulation">
+                                    <i class="fas fa-stop"></i>
+                                </button>
+                                <button class="sim-btn" id="resetSim" title="Reset Simulation">
+                                    <i class="fas fa-redo"></i>
+                                </button>
+                            </div>
+
+                            <!-- Training Controls -->
+                            <div class="training-controls-panel" id="trainingControls" style="display: none;">
+                                <h4>Training Controls</h4>
+                                <div class="training-buttons">
+                                    <button class="btn btn-secondary btn-sm" id="btn-pause-training">
+                                        <i class="fas fa-pause"></i>
+                                        Pause Training
+                                    </button>
+                                    <button class="btn btn-secondary btn-sm" id="btn-resume-training">
+                                        <i class="fas fa-play"></i>
+                                        Resume Training
+                                    </button>
+                                    <button class="btn btn-outline btn-sm" id="btn-view-training">
+                                        <i class="fas fa-eye"></i>
+                                        View Details
+                                    </button>
+                                    <button class="btn btn-warning btn-sm" id="btn-stop-training">
+                                        <i class="fas fa-stop"></i>
+                                        Stop Training
+                                    </button>
+                                </div>
+                                <div class="gpu-info" id="gpuInfo">
+                                    <small>Device: <span id="deviceInfo">CPU</span></small>
+                                </div>
+                            </div>
+
+                            <div class="manual-controls" id="manualControls" style="display: none;">
+                                <h4>Manual Phase Control</h4>
+                                <div class="phase-buttons">
+                                    <button class="phase-control-btn" data-phase="0">
+                                        <i class="fas fa-arrow-up"></i>
+                                        <i class="fas fa-arrow-down"></i>
+                                        <span>North-South</span>
+                                    </button>
+                                    <button class="phase-control-btn" data-phase="1">
+                                        <i class="fas fa-arrow-left"></i>
+                                        <i class="fas fa-arrow-right"></i>
+                                        <span>East-West</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -455,7 +464,8 @@
                             <div class="form-group">
                                 <label>Traffic Density (veh/hr)</label>
                                 <div class="range-container">
-                                    <input type="range" min="500" max="3000" value="1200" class="slider" id="densitySlider">
+                                    <input type="range" min="500" max="3000" value="1200" class="slider"
+                                        id="densitySlider">
                                     <span class="slider-value">1200</span>
                                 </div>
                             </div>
@@ -542,8 +552,10 @@
                                 </div>
                             </div>
                             <div class="model-actions">
-                                <button class="btn btn-outline btn-sm" onclick="trafficAI.loadModel('ppo')">Load</button>
-                                <button class="btn btn-primary btn-sm" onclick="trafficAI.trainModel('ppo')">Train</button>
+                                <button class="btn btn-outline btn-sm model-action-btn" data-action="load"
+                                    data-model="ppo">Load</button>
+                                <button class="btn btn-primary btn-sm model-action-btn" data-action="train"
+                                    data-model="ppo">Train</button>
                             </div>
                         </div>
 
@@ -565,8 +577,10 @@
                                 </div>
                             </div>
                             <div class="model-actions">
-                                <button class="btn btn-outline btn-sm" onclick="trafficAI.loadModel('dqn')">Load</button>
-                                <button class="btn btn-primary btn-sm" onclick="trafficAI.trainModel('dqn')">Train</button>
+                                <button class="btn btn-outline btn-sm model-action-btn" data-action="load"
+                                    data-model="dqn">Load</button>
+                                <button class="btn btn-primary btn-sm model-action-btn" data-action="train"
+                                    data-model="dqn">Train</button>
                             </div>
                         </div>
                     </div>
@@ -611,4 +625,5 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="script.js"></script>
 </body>
+
 </html>

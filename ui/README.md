@@ -1,10 +1,10 @@
-# AI Traffic Light Control System - Web UI
+ AI Traffic Light Control System - Web UI
 
 A modern, responsive web interface for monitoring and controlling the AI-powered adaptive traffic light system.
 
 ## Features
 
-### 🎛️ Control Panel
+###  Control Panel
 - **System Modes**: Switch between Manual, AI Control, and Fixed Time modes
 - **Simulation Control**: Start, pause, stop, and reset traffic simulations
 - **Manual Override**: Direct control of traffic light phases
