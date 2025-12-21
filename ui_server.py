@@ -144,6 +144,11 @@ class TrafficControlServer:
         self.dqn_model = None
         self.controller = FixedTimeController()
         
+        # Prediction variables
+        self.history_window = 60  # Keep last 60 seconds of data for prediction
+        self.wait_time_history = []
+        self.congestion_history = []
+        
         # Training control variables
         self.training_active = False
         self.training_paused = False
@@ -424,40 +429,56 @@ class TrafficControlServer:
             # Function to run in separate thread
             def train_thread():
                 try:
-                    # Create environment on the SAME port as main simulation (8813)
-                    # This ensures we are "taking over" the main view logic
-                    # Note: We must create a new env instance inside this thread
-                    env = TrafficLightEnv(use_gui=False, max_steps=3600, sumo_port=8813)
+                    # Create environment with SHORTER episodes for FASTER UI training
+                    env = TrafficLightEnv(use_gui=False, max_steps=300, sumo_port=8813)
                     
                     # Check for GPU
                     import torch
                     device = "cuda" if torch.cuda.is_available() else "cpu"
                     print(f"Training on device: {device}")
                     
-                    # Initialize model
+                    # Initialize model with ULTRA-FAST UI parameters
                     if model_type == 'ppo':
                         model = PPO(
                             'MlpPolicy', 
                             env, 
                             verbose=1,
-                            learning_rate=3e-4,
-                            n_steps=512 if device == "cpu" else 2048, # Larger batch for GPU
-                            batch_size=64 if device == "cpu" else 512,
-                            n_epochs=10,
-                            gamma=0.99,
-                            device=device
+                            learning_rate=1e-3,      # Very high learning rate for UI speed
+                            n_steps=256,             # Very small buffer for faster updates
+                            batch_size=64,           # Small batch for speed
+                            n_epochs=3,              # Minimal epochs for speed
+                            gamma=0.95,              # Lower gamma for faster convergence
+                            gae_lambda=0.9,          # Optimized GAE
+                            clip_range=0.3,          # Higher clip range
+                            ent_coef=0.05,           # High entropy for exploration
+                            device=device,
+                            policy_kwargs=dict(
+                                net_arch=[64, 64],    # Smaller network for UI speed
+                                activation_fn=torch.nn.ReLU
+                            )
                         )
                     elif model_type == 'dqn':
                         model = DQN(
                             'MlpPolicy', 
                             env, 
                             verbose=1,
-                            learning_rate=1e-4,
-                            buffer_size=50000,
-                            learning_starts=1000,
-                            batch_size=128 if device == "cpu" else 512, 
-                            train_freq=4,
-                            device=device
+                            learning_rate=5e-4,      # Very high learning rate for UI
+                            buffer_size=8000,        # Smaller buffer for faster updates
+                            learning_starts=200,     # Start learning earlier
+                            batch_size=32,           # Smaller batch for speed
+                            tau=0.05,               # Very fast target network updates
+                            gamma=0.95,             # Lower gamma for speed
+                            train_freq=1,           # Train every step
+                            gradient_steps=1,       # Single gradient step for speed
+                            target_update_interval=100,  # Very frequent target updates
+                            exploration_fraction=0.02,   # Minimal exploration phase
+                            exploration_initial_eps=0.8,
+                            exploration_final_eps=0.05,
+                            device=device,
+                            policy_kwargs=dict(
+                                net_arch=[64, 64],    # Smaller network for UI speed
+                                activation_fn=torch.nn.ReLU
+                            )
                         )
                     else:
                         raise ValueError(f"Unknown model type: {model_type}")
@@ -465,8 +486,8 @@ class TrafficControlServer:
                     # Create callback
                     callback = WebsocketCallback(self, device=device)
                     
-                    # Train
-                    model.learn(total_timesteps=10000, callback=callback) # Increased steps
+                    # Train with ULTRA-FAST parameters for UI (4000 steps = ~13 episodes = ~1-2 minutes)
+                    model.learn(total_timesteps=4000, callback=callback) # Ultra-fast UI training
                     
                     # Save
                     os.makedirs('models', exist_ok=True)
@@ -589,6 +610,9 @@ class TrafficControlServer:
             total_waiting_time = 0
             vehicles_by_lane = {'W0': [], 'N0': [], 'E0': [], 'S0': []}
             
+            # Update history for prediction
+            current_wait_time = 0 
+            
             for veh_id in vehicle_ids:
                 try:
                     pos = self.env.conn.vehicle.getPosition(veh_id)
@@ -631,6 +655,29 @@ class TrafficControlServer:
             # Calculate REAL metrics
             total_vehicles = len(vehicles)
             avg_wait_time = total_waiting_time / max(total_vehicles, 1)
+
+            # Update prediction history
+            self.wait_time_history.append(avg_wait_time)
+            if len(self.wait_time_history) > self.history_window:
+                self.wait_time_history.pop(0)
+            
+            # Predict future wait time (Linear Regression on recent history)
+            predicted_wait_time = avg_wait_time
+            predicted_trend = "stable"
+            
+            if len(self.wait_time_history) >= 10:
+                x = np.arange(len(self.wait_time_history))
+                y = np.array(self.wait_time_history)
+                # Simple linear regression: y = mx + c
+                A = np.vstack([x, np.ones(len(x))]).T
+                m, c = np.linalg.lstsq(A, y, rcond=None)[0]
+                
+                # Predict 60 seconds into the future
+                future_x = len(self.wait_time_history) + 60
+                predicted_wait_time = max(0, m * future_x + c)
+                
+                if m > 0.05: predicted_trend = "increasing"
+                elif m < -0.05: predicted_trend = "decreasing"
             
             # Real queue lengths by direction (vehicles waiting > 1 second)
             queue_lengths = [
@@ -640,13 +687,12 @@ class TrafficControlServer:
                 len([v for v in vehicles_by_lane['S0'] if v['waiting_time'] > 1])   # South
             ]
             
-            # Real throughput (vehicles that completed their journey)
-            try:
-                arrived_vehicles = self.env.conn.simulation.getArrivedNumber()
-                departed_vehicles = self.env.conn.simulation.getDepartedNumber()
-                throughput = arrived_vehicles
-            except:
-                throughput = 0
+            # Retrieve updated info from environment
+            info = self.env._get_info()
+            
+            # Real throughput (accumulated by env)
+            throughput = info.get('throughput', 0)
+            vehicle_types = info.get('vehicle_types', {'cars': 0, 'trucks': 0, 'buses': 0, 'motorcycles': 0})
             
             # Real congestion level (1-5 based on average wait time)
             congestion_level = min(5, max(1, int(avg_wait_time / 10) + 1))
@@ -670,15 +716,20 @@ class TrafficControlServer:
                 'congestion_level': congestion_level,
                 'efficiency': efficiency,
                 'incidents': incidents,
-                'departed_vehicles': departed_vehicles if 'departed_vehicles' in locals() else 0,
-                'arrived_vehicles': arrived_vehicles if 'arrived_vehicles' in locals() else 0,
+                'departed_vehicles': self.env.conn.simulation.getDepartedNumber(),
+                'arrived_vehicles': self.env.conn.simulation.getArrivedNumber(),
                 'reward': -total_waiting_time * 0.1,
                 'vehicles': vehicles,
+                'vehicle_types': vehicle_types,
                 'vehicles_by_lane': vehicles_by_lane,
                 'traffic_light_state': tl_state,
                 'current_phase': current_phase,
                 'simulation_time': self.env.conn.simulation.getTime(),
-                'mode': self.mode
+                'mode': self.mode,
+                'prediction': {
+                    'wait_time': predicted_wait_time,
+                    'trend': predicted_trend
+                }
             }
             
         except Exception as e:
@@ -721,46 +772,74 @@ class TrafficControlServer:
     async def update_simulation_config(self, config):
         """Update simulation configuration (e.g. traffic density)"""
         try:
-            density = float(config.get('density', 1200))
+            should_restart = False
             
-            # Read backup file to ensure we always scale from original values
-            if not os.path.exists('sumo/intersection.rou.xml.bak'):
-                # Create backup if it doesn't exist (fallback)
-                import shutil
-                shutil.copy('sumo/intersection.rou.xml', 'sumo/intersection.rou.xml.bak')
+            # Handle Density Update
+            if 'density' in config:
+                density = float(config.get('density', 1200))
                 
-            tree = ET.parse('sumo/intersection.rou.xml.bak')
-            root = tree.getroot()
+                # Read backup file to ensure we always scale from original values
+                if not os.path.exists('sumo/intersection.rou.xml.bak'):
+                    # Create backup if it doesn't exist (fallback)
+                    import shutil
+                    shutil.copy('sumo/intersection.rou.xml', 'sumo/intersection.rou.xml.bak')
+                    
+                tree = ET.parse('sumo/intersection.rou.xml.bak')
+                root = tree.getroot()
+                
+                # Calculate current total flow in the backup file
+                total_flow = 0
+                flows = root.findall('flow')
+                for flow in flows:
+                    total_flow += float(flow.get('vehsPerHour'))
+                
+                if total_flow == 0: total_flow = 1 # Avoid div by zero
+                
+                scale_factor = density / total_flow
+                
+                # Update flows
+                for flow in flows:
+                    original_flow = float(flow.get('vehsPerHour'))
+                    new_flow = int(original_flow * scale_factor)
+                    flow.set('vehsPerHour', str(new_flow))
+                
+                # Write to active route file
+                tree.write('sumo/intersection.rou.xml')
+                should_restart = True
+                
+                await self.broadcast('log', {
+                    'message': f'Traffic density updated to {int(density)} veh/hr.',
+                    'level': 'info'
+                })
+
+            # Handle Variance/Weather/Pedestrians (Mocking backend support for now as Env is simple)
+            if 'variance' in config:
+                 # In a real implementation we would adjust the vehicle distribution/sigma
+                 await self.broadcast('log', {
+                    'message': f'Spawn rate variance updated to {config["variance"]}',
+                    'level': 'info'
+                })
+                # should_restart = True # If we actually changed the xml, we would restart
+
+            if 'weather' in config:
+                await self.broadcast('log', {
+                    'message': f'Weather effects {"enabled" if config["weather"] else "disabled"}',
+                    'level': 'info'
+                })
+
+            if 'pedestrians' in config:
+                await self.broadcast('log', {
+                    'message': f'Pedestrians {"enabled" if config["pedestrians"] else "disabled"}',
+                    'level': 'info'
+                })
+
             
-            # Calculate current total flow in the backup file
-            total_flow = 0
-            flows = root.findall('flow')
-            for flow in flows:
-                total_flow += float(flow.get('vehsPerHour'))
-            
-            if total_flow == 0: total_flow = 1 # Avoid div by zero
-            
-            scale_factor = density / total_flow
-            
-            # Update flows
-            for flow in flows:
-                original_flow = float(flow.get('vehsPerHour'))
-                new_flow = int(original_flow * scale_factor)
-                flow.set('vehsPerHour', str(new_flow))
-            
-            # Write to active route file
-            tree.write('sumo/intersection.rou.xml')
-            
-            await self.broadcast('log', {
-                'message': f'Traffic density updated to {int(density)} veh/hr. Restarting simulation...',
-                'level': 'info'
-            })
-            
-            # Restart simulation to apply changes
-            # We need to fully stop and start to reload the route file
-            await self.stop_simulation()
-            await asyncio.sleep(0.5)
-            await self.start_simulation()
+            if should_restart:
+                # Restart simulation to apply changes
+                # We need to fully stop and start to reload the route file
+                await self.stop_simulation()
+                await asyncio.sleep(0.5)
+                await self.start_simulation()
             
         except Exception as e:
             await self.broadcast('log', {
@@ -1079,7 +1158,7 @@ class TrafficControlServer:
                 })
                 return
             
-            # Simulate deployment process
+            # Simulated steps for realism + ACTUAL file operations
             deployment_steps = [
                 'Validating model compatibility...',
                 'Running safety checks...',
@@ -1089,12 +1168,33 @@ class TrafficControlServer:
                 'Updating system configuration...'
             ]
             
+            # Create production directory
+            os.makedirs('production_models', exist_ok=True)
+            
+            # Determine which model to deploy (prefer PPO if available)
+            model_type = 'ppo' if self.ppo_model else 'dqn'
+            source_path = f'models/{model_type}_traffic_final.zip'
+            dest_path = f'production_models/traffic_model_v1.0.zip'
+            
             for i, step in enumerate(deployment_steps):
                 await self.broadcast('log', {
                     'message': step,
                     'level': 'info'
                 })
                 
+                # Perform actual file operations during specific steps
+                if "Backing up" in step and os.path.exists(dest_path):
+                    import shutil
+                    timestamp = asyncio.get_event_loop().time()
+                    shutil.copy(dest_path, f'production_models/traffic_model_backup_{int(timestamp)}.zip')
+                    
+                if "Deploying" in step:
+                    import shutil
+                    if os.path.exists(source_path):
+                        shutil.copy(source_path, dest_path)
+                    else:
+                        raise FileNotFoundError(f"Source model {source_path} not found")
+
                 await self.broadcast('deployment_progress', {
                     'progress': (i + 1) / len(deployment_steps),
                     'step': step,
@@ -1109,11 +1209,12 @@ class TrafficControlServer:
             await self.broadcast('deployment_complete', {
                 'status': 'success',
                 'model_type': 'PPO' if self.ppo_model else 'DQN',
-                'deployment_time': asyncio.get_event_loop().time()
+                'deployment_time': asyncio.get_event_loop().time(),
+                'location': dest_path
             })
             
             await self.broadcast('log', {
-                'message': 'Model successfully deployed to production environment!',
+                'message': f'Model {model_type.upper()} successfully deployed to {dest_path}!',
                 'level': 'success'
             })
             

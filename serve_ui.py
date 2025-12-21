@@ -20,39 +20,58 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Headers', '*')
         super().end_headers()
 
-def start_http_server(port=8080):
-    """Start HTTP server for UI files"""
+def start_ui_server(port=8080):
+    """Start the UI server"""
     try:
         with socketserver.TCPServer(("", port), CustomHTTPRequestHandler) as httpd:
-            print(f"🌐 HTTP Server running on http://localhost:{port}")
+            print(f"🌐 UI Server running at http://localhost:{port}")
             print(f"📁 Serving files from: {os.path.abspath('ui')}")
-            print("🚀 Opening web browser...")
+            print("🚀 Open http://localhost:8080 in your browser")
+            print("Press Ctrl+C to stop the server")
             
-            # Open browser after a short delay
+            # Auto-open browser after a short delay
             def open_browser():
                 time.sleep(1)
-                webbrowser.open(f"http://localhost:{port}")
+                webbrowser.open(f'http://localhost:{port}')
             
-            threading.Thread(target=open_browser, daemon=True).start()
+            browser_thread = threading.Thread(target=open_browser)
+            browser_thread.daemon = True
+            browser_thread.start()
             
-            print("Press Ctrl+C to stop the server")
             httpd.serve_forever()
             
+    except KeyboardInterrupt:
+        print("\n🛑 UI Server stopped")
     except OSError as e:
-        if e.errno == 10048:  # Port already in use
-            print(f"❌ Port {port} is already in use")
-            print(f"🔄 Trying port {port + 1}...")
-            start_http_server(port + 1)
+        if "Address already in use" in str(e):
+            print(f"❌ Port {port} is already in use. Try a different port:")
+            print(f"   python serve_ui.py --port 8081")
         else:
-            print(f"❌ Error starting HTTP server: {e}")
+            print(f"❌ Error starting server: {e}")
 
-if __name__ == "__main__":
-    print("🚦 TrafficAI Manager - UI Server")
+def main():
+    """Main entry point"""
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='Serve the AI Traffic Light Control UI')
+    parser.add_argument('--port', type=int, default=8080, help='Port to serve on (default: 8080)')
+    
+    args = parser.parse_args()
+    
+    print("🚦 AI Traffic Light Control System - UI Server")
     print("=" * 50)
     
-    # Check if UI files exist
-    if not os.path.exists("ui/index.html"):
-        print("❌ UI files not found. Please ensure ui/index.html exists.")
-        exit(1)
+    # Check if ui directory exists
+    if not os.path.exists('ui'):
+        print("❌ UI directory not found. Make sure you're in the project root directory.")
+        return
     
-    start_http_server()
+    # Check if index.html exists
+    if not os.path.exists('ui/index.html'):
+        print("❌ UI files not found. Make sure ui/index.html exists.")
+        return
+    
+    start_ui_server(args.port)
+
+if __name__ == "__main__":
+    main()

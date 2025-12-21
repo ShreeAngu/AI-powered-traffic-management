@@ -1837,3 +1837,70 @@ body {
         justify-content: space-between;
     }
 }
+/* Prediction Card */
+.prediction-summary {
+    padding: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.prediction-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.prediction-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.prediction-value-container {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.prediction-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--accent-purple);
+}
+
+.prediction-unit {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.prediction-trend {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    min-width: 100px;
+}
+
+.prediction-trend i {
+    font-size: 20px;
+}
+
+.prediction-trend.stable { color: var(--accent-blue); }
+.prediction-trend.increasing { color: var(--accent-orange); }
+.prediction-trend.decreasing { color: var(--success); }
+
+.prediction-insight {
+    padding: 12px 24px;
+    background: var(--bg-tertiary);
+    border-top: 1px solid var(--border-color);
+}
+
+.prediction-insight p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-align: center;
+}
+

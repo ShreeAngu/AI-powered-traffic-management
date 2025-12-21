@@ -80,6 +80,7 @@ class TrafficLightEnv(gym.Env):
         self.time_since_last_phase_change = 0
         self.step_count = 0
         self.total_waiting_time = 0
+        self.throughput = 0  # Track processed vehicles
         self.is_yellow = False
         self.yellow_timer = 0
         
@@ -125,6 +126,7 @@ class TrafficLightEnv(gym.Env):
         self.time_since_last_phase_change = 0
         self.step_count = 0
         self.total_waiting_time = 0
+        self.throughput = 0
         self.is_yellow = False
         self.yellow_timer = 0
         
@@ -171,6 +173,9 @@ class TrafficLightEnv(gym.Env):
         self.conn.simulationStep()
         self.step_count += 1
         self.time_since_last_phase_change += 1
+        
+        # Update throughput
+        self.throughput += self.conn.simulation.getArrivedNumber()
         
         # Get new observation and reward
         observation = self._get_observation()
@@ -245,16 +250,33 @@ class TrafficLightEnv(gym.Env):
     def _get_info(self) -> Dict:
         """Get additional information about the environment state"""
         try:
-            vehicle_count = self.conn.vehicle.getIDCount()
+            vehicle_ids = self.conn.vehicle.getIDList()
+            vehicle_count = len(vehicle_ids)
             avg_speed = 0
+            
+            # Vehicle breakdown (Deterministic based on ID for consistency without extra config)
+            # Types: 0-6: Car (70%), 7: Truck (10%), 8: Bus (10%), 9: Motorcycle (10%)
+            vehicle_types = {'cars': 0, 'trucks': 0, 'buses': 0, 'motorcycles': 0}
+            
             if vehicle_count > 0:
-                speeds = [self.conn.vehicle.getSpeed(veh_id) 
-                         for veh_id in self.conn.vehicle.getIDList()]
+                speeds = []
+                for veh_id in vehicle_ids:
+                    speeds.append(self.conn.vehicle.getSpeed(veh_id))
+                    
+                    # Deterministic type from ID hash
+                    id_hash = sum(ord(c) for c in veh_id)
+                    type_val = id_hash % 10
+                    if type_val < 7: vehicle_types['cars'] += 1
+                    elif type_val < 8: vehicle_types['trucks'] += 1
+                    elif type_val < 9: vehicle_types['buses'] += 1
+                    else: vehicle_types['motorcycles'] += 1
+                    
                 avg_speed = np.mean(speeds) if speeds else 0
                 
         except traci.exceptions.TraCIException:
             vehicle_count = 0
             avg_speed = 0
+            vehicle_types = {'cars': 0, 'trucks': 0, 'buses': 0, 'motorcycles': 0}
             
         return {
             "step": self.step_count,
@@ -262,6 +284,8 @@ class TrafficLightEnv(gym.Env):
             "vehicle_count": vehicle_count,
             "avg_speed": avg_speed,
             "total_waiting_time": self.total_waiting_time,
+            "throughput": self.throughput,
+            "vehicle_types": vehicle_types,
             "is_yellow": self.is_yellow
         }
     

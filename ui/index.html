@@ -337,6 +337,30 @@
                             </div>
                         </div>
 
+                        <!-- Traffic Prediction -->
+                        <div class="dashboard-card prediction-card">
+                            <div class="card-header">
+                                <h3>Traffic Forecast</h3>
+                                <p>AI Prediction (Next 60s)</p>
+                            </div>
+                            <div class="prediction-summary">
+                                <div class="prediction-metric">
+                                    <span class="prediction-label">Predicted Wait Time</span>
+                                    <div class="prediction-value-container">
+                                        <span class="prediction-value" id="predWaitTime">--</span>
+                                        <span class="prediction-unit">sec</span>
+                                    </div>
+                                </div>
+                                <div class="prediction-trend" id="predTrendBox">
+                                    <i class="fas fa-minus" id="predTrendIcon"></i>
+                                    <span id="predTrendText">Stable</span>
+                                </div>
+                            </div>
+                            <div class="prediction-insight">
+                                <p id="predInsight">Collecting data for prediction...</p>
+                            </div>
+                        </div>
+
                         <!-- Recent Alerts -->
                         <div class="dashboard-card alerts-card">
                             <div class="card-header">
@@ -346,13 +370,14 @@
                             <div class="alerts-list" id="alertsList">
                                 <!-- Dynamic alerts will be populated here -->
                             </div>
-                            
+
                             <!-- System Log Container -->
                             <div class="log-container" id="systemLog" style="display: none;">
-                                <h4 style="margin-bottom: 8px; color: var(--text-secondary); font-size: 12px;">System Log</h4>
+                                <h4 style="margin-bottom: 8px; color: var(--text-secondary); font-size: 12px;">System
+                                    Log</h4>
                                 <!-- Log entries will be added here -->
                             </div>
-                            
+
                             <div style="margin-top: 12px; text-align: center;">
                                 <button class="btn btn-outline btn-sm" onclick="trafficAI.toggleSystemLog()">
                                     <i class="fas fa-terminal"></i>

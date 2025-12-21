@@ -25,6 +25,7 @@ class TrafficAIManager {
         this.initAnalyticsCharts();
         this.connectWebSocket();
         this.updateTrafficLights(0);
+        this.loadSettings();
 
         // Check hash for initial view
         const hash = window.location.hash.slice(1) || 'dashboard';
@@ -94,6 +95,40 @@ class TrafficAIManager {
             });
         }
 
+        // Variance Slider (New)
+        const varianceSlider = document.querySelector('input[type="range"][step="0.1"]');
+        if (varianceSlider) {
+            varianceSlider.addEventListener('input', (e) => {
+                e.target.nextElementSibling.textContent = e.target.value;
+            });
+            varianceSlider.addEventListener('change', (e) => {
+                this.sendWebSocketMessage('update_config', {
+                    variance: parseFloat(e.target.value)
+                });
+            });
+        }
+
+        // Toggles (New)
+        const weatherToggleLabel = Array.from(document.querySelectorAll('.toggle-label')).find(el => el.textContent.includes('Weather'));
+        if (weatherToggleLabel) {
+            const checkbox = weatherToggleLabel.querySelector('input[type="checkbox"]');
+            if (checkbox) {
+                checkbox.addEventListener('change', (e) => {
+                    this.sendWebSocketMessage('update_config', { weather: e.target.checked });
+                });
+            }
+        }
+
+        const pedToggleLabel = Array.from(document.querySelectorAll('.toggle-label')).find(el => el.textContent.includes('Pedestrians'));
+        if (pedToggleLabel) {
+            const checkbox = pedToggleLabel.querySelector('input[type="checkbox"]');
+            if (checkbox) {
+                checkbox.addEventListener('change', (e) => {
+                    this.sendWebSocketMessage('update_config', { pedestrians: e.target.checked });
+                });
+            }
+        }
+
         // Mission Control Buttons
         document.getElementById('btn-pause-training')?.addEventListener('click', () => this.pauseTraining());
         document.getElementById('btn-resume-training')?.addEventListener('click', () => this.resumeTraining());
@@ -125,6 +160,46 @@ class TrafficAIManager {
         // Quick Actions
         document.getElementById('btn-run-eval')?.addEventListener('click', () => this.runEvaluation());
         document.getElementById('btn-deploy-model')?.addEventListener('click', () => this.deployModel());
+
+        // Settings Inputs
+        const themeSelect = document.querySelector('.settings-section select');
+        if (themeSelect) {
+            themeSelect.addEventListener('change', (e) => this.setTheme(e.target.value));
+        }
+
+        const sysNameInput = document.querySelector('.settings-section input[type="text"]');
+        if (sysNameInput) {
+            sysNameInput.addEventListener('change', (e) => {
+                localStorage.setItem('traffic_sys_name', e.target.value);
+                this.addAlert('Settings Saved', 'System name updated', 'success');
+            });
+        }
+    }
+
+    loadSettings() {
+        // Load Theme
+        const storedTheme = localStorage.getItem('traffic_theme');
+        if (storedTheme) {
+            this.setTheme(storedTheme);
+            const select = document.querySelector('.settings-section select');
+            if (select) select.value = storedTheme;
+        }
+
+        // Load System Name
+        const storedName = localStorage.getItem('traffic_sys_name');
+        if (storedName) {
+            const input = document.querySelector('.settings-section input[type="text"]');
+            if (input) input.value = storedName;
+        }
+    }
+
+    setTheme(theme) {
+        if (theme === 'Light') {
+            document.body.classList.add('light-mode');
+        } else {
+            document.body.classList.remove('light-mode');
+        }
+        localStorage.setItem('traffic_theme', theme);
     }
 
     switchView(viewId) {
@@ -172,7 +247,7 @@ class TrafficAIManager {
                 this.isConnected = true;
                 this.updateConnectionStatus();
                 console.log('✅ Connected to TrafficAI backend');
-                
+
                 // Add connection success alert
                 this.addAlert('Backend Connected', 'Successfully connected to TrafficAI server', 'success');
             };
@@ -195,7 +270,7 @@ class TrafficAIManager {
                 this.isConnected = false;
                 this.updateConnectionStatus();
                 console.log('❌ Disconnected from backend. Code:', event.code, 'Reason:', event.reason);
-                
+
                 // Add disconnection alert
                 this.addAlert('Backend Disconnected', 'Connection to TrafficAI server lost', 'warning');
 
@@ -210,7 +285,7 @@ class TrafficAIManager {
                 console.error('❌ WebSocket error:', error);
                 this.isConnected = false;
                 this.updateConnectionStatus();
-                
+
                 this.addAlert('Connection Error', 'Failed to connect to TrafficAI server', 'critical');
             };
         } catch (error) {
@@ -218,7 +293,7 @@ class TrafficAIManager {
             console.error('Connection error:', error);
             this.isConnected = false;
             this.updateConnectionStatus();
-            
+
             this.addAlert('Backend Unavailable', 'Running in UI-only mode. Start the server to enable full functionality.', 'warning');
         }
     }
@@ -481,6 +556,9 @@ class TrafficAIManager {
         // Update additional real metrics
         this.updateAdditionalMetrics(data);
 
+        // Update full analytics charts
+        this.updateAnalyticsCharts(data);
+
         // Update simulation time
         if (data.simulation_time !== undefined) {
             this.updateSimulationTime(data.simulation_time);
@@ -502,6 +580,42 @@ class TrafficAIManager {
                 const rewardDisplay = document.querySelector('.current-reward-display');
                 if (rewardDisplay) {
                     rewardDisplay.textContent = `Reward: ${data.reward.toFixed(2)}`;
+                }
+            }
+        }
+
+        // Update Prediction Card (New)
+        if (data.prediction) {
+            const predWait = document.getElementById('predWaitTime');
+            const predTrendBox = document.getElementById('predTrendBox');
+            const predTrendIcon = document.getElementById('predTrendIcon');
+            const predTrendText = document.getElementById('predTrendText');
+            const predInsight = document.querySelector('.prediction-insight p');
+
+            if (predWait) {
+                predWait.textContent = data.prediction.wait_time.toFixed(1);
+            }
+
+            if (predTrendBox && predTrendIcon && predTrendText) {
+                // Reset classes
+                predTrendBox.className = 'prediction-trend';
+                predTrendIcon.className = '';
+
+                if (data.prediction.trend === 'increasing') {
+                    predTrendBox.classList.add('increasing');
+                    predTrendIcon.className = 'fas fa-arrow-trend-up';
+                    predTrendText.textContent = 'Rising';
+                    if (predInsight) predInsight.textContent = 'Traffic building up. Consider increasing green time.';
+                } else if (data.prediction.trend === 'decreasing') {
+                    predTrendBox.classList.add('decreasing');
+                    predTrendIcon.className = 'fas fa-arrow-trend-down';
+                    predTrendText.textContent = 'Clearing';
+                    if (predInsight) predInsight.textContent = 'Traffic clearing up. Flow is optimal.';
+                } else {
+                    predTrendBox.classList.add('stable');
+                    predTrendIcon.className = 'fas fa-minus';
+                    predTrendText.textContent = 'Stable';
+                    if (predInsight) predInsight.textContent = 'Traffic flow is stable. Standard timing effective.';
                 }
             }
         }
@@ -970,8 +1084,49 @@ class TrafficAIManager {
             // Add color coding based on performance
             improvementElement.className = improvement > 0 ?
                 'improvement-value positive' : 'improvement-value negative';
-
             console.log(`Real-time improvement: ${sign}${value}% (AI: ${avgAI.toFixed(1)}s, Baseline: ${avgBaseline.toFixed(1)}s)`);
+        }
+    }
+
+    updateAnalyticsCharts(data) {
+        // Flow History (Real Throughput)
+        if (this.charts.flow) {
+            const datasets = this.charts.flow.data.datasets[0].data;
+            datasets.shift();
+            // Use total active vehicles as 'Traffic Volume' since Flow Rate is hard to calc instantaneously without history in env
+            datasets.push(data.total_vehicles || 0);
+            this.charts.flow.update('none');
+        }
+
+        // Vehicle Types (REAL DATA)
+        if (this.charts.types && data.vehicle_types) {
+            const types = data.vehicle_types;
+            // data.vehicle_types is {cars: N, trucks: N, ...}
+
+            this.charts.types.data.datasets[0].data = [
+                types.cars || 0,
+                types.trucks || 0,
+                types.buses || 0,
+                types.motorcycles || 0
+            ];
+            this.charts.types.update('none');
+        }
+
+        // Wait Time History
+        if (this.charts.wait) {
+            const datasets = this.charts.wait.data.datasets[0].data;
+            const labels = this.charts.wait.data.labels;
+
+            if (datasets.length > 10) {
+                datasets.shift();
+                labels.shift();
+            }
+
+            const now = new Date();
+            labels.push(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+            datasets.push(data.avg_wait_time || 0);
+
+            this.charts.wait.update('none');
         }
     }
 
@@ -998,6 +1153,17 @@ class TrafficAIManager {
             this.charts.performance.data.datasets[1].data = [];
             this.charts.performance.update();
         }
+
+        // Reset Analytics Charts
+        if (this.charts.flow) {
+            this.charts.flow.data.datasets[0].data = [0, 0, 0, 0, 0, 0, 0];
+            this.charts.flow.update();
+        }
+        if (this.charts.wait) {
+            this.charts.wait.data.labels = [];
+            this.charts.wait.data.datasets[0].data = [];
+            this.charts.wait.update();
+        }
     }
 
     updateSimulationTime(time) {
@@ -1017,7 +1183,7 @@ class TrafficAIManager {
 
     trainModel(modelType) {
         console.log(`Training ${modelType} model...`);
-        
+
         if (this.isTraining) {
             this.addAlert('Training Active', 'Another training session is already running', 'warning');
             return;
@@ -1085,7 +1251,7 @@ class TrafficAIManager {
             this.addAlert('No Training Active', 'No training session is currently running', 'warning');
             return;
         }
-        
+
         if (confirm('Are you sure you want to stop training? Progress will be lost.')) {
             this.sendWebSocketMessage('stop_training', {});
             this.hideTrainingControls();
@@ -1328,7 +1494,7 @@ class TrafficAIManager {
                 rewardText.className = 'reward-text';
                 trainingInfo.appendChild(rewardText);
             }
-            
+
             if (data.mean_reward !== undefined) {
                 rewardText.textContent = `Mean Reward: ${data.mean_reward.toFixed(2)}`;
                 rewardText.style.color = data.mean_reward > 0 ? 'var(--success)' : 'var(--accent-red)';
@@ -1420,7 +1586,7 @@ class TrafficAIManager {
             if (statusText) {
                 statusText.textContent = 'Initializing training...';
             }
-            
+
             const etaText = trainingInfo.querySelector('.eta');
             if (etaText) {
                 etaText.textContent = 'Starting training process...';
@@ -1429,9 +1595,9 @@ class TrafficAIManager {
 
         // Reset progress to 0%
         this.resetTrainingProgress();
-        this.updateTrainingProgress({ 
-            progress: 0, 
-            status: 'Initializing...', 
+        this.updateTrainingProgress({
+            progress: 0,
+            status: 'Initializing...',
             mean_reward: 0,
             training_step: 0
         });
@@ -1451,7 +1617,7 @@ class TrafficAIManager {
         const resumeBtn = document.getElementById('btn-resume-training');
         const stopBtn = document.getElementById('btn-stop-training');
         const viewBtn = document.getElementById('btn-view-training');
-        
+
         if (pauseBtn) pauseBtn.disabled = false;
         if (resumeBtn) resumeBtn.disabled = true;
         if (stopBtn) stopBtn.disabled = false;
@@ -1468,7 +1634,7 @@ class TrafficAIManager {
         if (trainingInfo) {
             trainingInfo.classList.remove('active');
             trainingInfo.classList.add('paused');
-            
+
             // Update status text
             const statusText = trainingInfo.querySelector('p');
             if (statusText) {
@@ -1497,7 +1663,7 @@ class TrafficAIManager {
         if (trainingInfo) {
             trainingInfo.classList.add('active');
             trainingInfo.classList.remove('paused');
-            
+
             // Update status text
             const statusText = trainingInfo.querySelector('p');
             if (statusText) {
@@ -1533,12 +1699,12 @@ class TrafficAIManager {
             if (trainingHeader) {
                 trainingHeader.textContent = 'Ready to Train';
             }
-            
+
             const statusText = trainingInfo.querySelector('p');
             if (statusText) {
                 statusText.textContent = 'No training in progress';
             }
-            
+
             const etaText = trainingInfo.querySelector('.eta');
             if (etaText) {
                 etaText.textContent = 'Click Train in AI Models tab';
@@ -1954,7 +2120,7 @@ TrafficAIManager.prototype.handleBenchmarkProgress = function (data) {
 TrafficAIManager.prototype.toggleSystemLog = function () {
     const logContainer = document.getElementById('systemLog');
     const toggleText = document.getElementById('logToggleText');
-    
+
     if (logContainer && toggleText) {
         if (logContainer.style.display === 'none') {
             logContainer.style.display = 'block';
@@ -1986,7 +2152,9 @@ TrafficAIManager.prototype.addLogMessage = function (logData) {
             }
         }
     }
-    
+
     // Also log to console for debugging
     console.log(`[${logData.level.toUpperCase()}] ${logData.message}`);
 };
+// Initialize the application
+const trafficAI = new TrafficAIManager();
